@@ -859,8 +859,11 @@ class PADdata(object):
         yshiftmap = np.copy(self.tcmask).astype('float')
         xshiftmap[np.nonzero(xshiftmap)] = stack.shifts_x
         yshiftmap[np.nonzero(yshiftmap)] = stack.shifts_y
+        self.shifts_x = stack.shifts_x
+        self.shifts_y = stack.shifts_y
         self.xshiftmap = xshiftmap
         self.yshiftmap = yshiftmap
+        
 
         if show:
             print("X shift matrix")

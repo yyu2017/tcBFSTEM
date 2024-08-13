@@ -30,8 +30,10 @@ def pfft(im):
     s[0,:] = im[0,:] - im[-1,:]
     s[-1,:] = -s[0,:]
 
+
     s[:,0] = s[:,0] + im[:,0] - im[:,-1]
     s[:,-1] = s[:,-1] - im[:,0] + im[:,-1]
+
 
     #Create grid for computing Poisson solution
     [cx, cy] = np.meshgrid(2*np.pi*np.arange(0,cols)/cols, 2*np.pi*np.arange(0,rows)/rows)
@@ -41,7 +43,11 @@ def pfft(im):
     D[0,0] = np.inf    # Enforce 0 mean & handle div by zero
     S = np.fft.fft2(s)/D
 
+
+    
+
     P = np.fft.fft2(im) - S # FFT of periodic component
+
 
     return np.fft.fftshift(P)
 

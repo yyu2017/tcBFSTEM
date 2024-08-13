@@ -363,7 +363,7 @@ def shiftfunc(im,xs,ys,scale,stype='real',zeros=None):
         v_xd = xsub - math.floor(xsub)
         v_xu = 1-v_xd
 
-        v_yr = ysub - math.floor(ysub)  
+        v_yr = ysub - math.floor(ysub)
         v_yl = 1-v_yr
         
         c_xu,c_xd = int(math.floor(xsub)%scale),int(math.floor(xsub+1)%scale)
@@ -392,44 +392,88 @@ def shiftfunc(im,xs,ys,scale,stype='real',zeros=None):
         
     return shift_im,norm
 
-#takes in a stack, xy image shifts and upsample
+def shiftfunc_idx_shift(im,xs,ys,xs2D,ys2D,scale,zeros=None):
+    
+    xdim0,ydim0 = np.shape(im)
+    xdim,ydim = int(xdim0/scale),int(ydim0/scale)
+    
+    upshift_Sum=np.zeros((xdim0,ydim0))
+    tile_full  =np.zeros((xdim0,ydim0))
+    
+    tile = np.zeros((scale,scale))
+    
+    
+    for i in range(xdim):
+        for j in range(ydim):
+            
+            xsub,ysub = (xs+xs2D[i,j])%scale,(ys+ys2D[i,j])%scale
+            xint,yint = int(math.floor(xs+xs2D[i,j])),int(math.floor(ys+ys2D[i,j]))
 
-def apply_shift_expand(stack,xshifts,yshifts,scale,stype='real',noise=False,snr=10):
+            v_xd = xsub - math.floor(xsub)
+            v_xu = 1-v_xd
+            
+
+            v_yr = ysub - math.floor(ysub)  
+            v_yl = 1-v_yr
+
+            c_xu,c_xd = int(math.floor(xsub)%scale),int(math.floor(xsub+1)%scale)
+            c_yl,c_yr = int(math.floor(ysub)%scale),int(math.floor(ysub+1)%scale)
+
+            # top left, right
+            tile[c_xu,c_yl],tile[c_xu,c_yr] = (v_xu*v_yl),(v_xu*v_yr)
+            # bottom left, right
+            tile[c_xd,c_yl],tile[c_xd,c_yr] = (v_xd*v_yl),(v_xd*v_yr)
+            
+            tile_full[i*scale:(i+1)*scale,j*scale:(j+1)*scale]=tile
+            
+    for i in range(xdim):
+        for j in range(ydim):
+
+            xint,yint = int(math.floor(xs+xs2D[i,j])),int(math.floor(ys+ys2D[i,j]))
+
+            for ii in range(scale):
+                for jj in range(scale):
+
+                    xnew=(ii+i*scale+xint)%xdim0
+                    ynew=(jj+j*scale+yint)%ydim0
+
+                    upshift_Sum[xnew,ynew]=upshift_Sum[xnew,ynew]+im[i*scale,j*scale]*tile_full[xnew,ynew]
+#     upshift = np.roll(im,(xint,yint),axis=(0,1))
+#     shift_im = upshift*tile_full
+    norm = tile_full 
+    return upshift_Sum,norm
+
+
+#takes in a stack, xy image shifts and upsample
+def apply_shift_expand(stack,xshifts,yshifts,scale,noise=False,snr=10):
     x,y,z = np.shape(stack)
     stack_reg = np.zeros((x*scale,y*scale,z))
     norm = np.zeros((x*scale,y*scale))
-    
-    if scale>1:
-#         pbar = tqdm(total = z,desc = "registering")
-        for i in range(z):
-            if stype == 'phase':
-                upstack = interpolation(stack[:,:,i],scale,method='null',noise=noise,snr=snr)
-                zeros = np.zeros((x*scale,y*scale))
-                ones = np.ones((x,y))
-                zeros[0::scale, 0::scale] = ones[0::1, 0::1]
 
-            else:
-                upstack = interpolation(stack[:,:,i],scale,method='nn',noise=noise,snr=snr)
-                zeros = None
-                
-            stack_reg[:,:,i],temp = shiftfunc(upstack, xshifts[i]*scale, yshifts[i]*scale,scale,stype=stype,zeros=zeros)
-            norm += temp
-#             pbar.update(1)
-
-    else:
-#         pbar = tqdm(total = z,desc = "registering")
-        for i in range(z):
-            stack_reg[:,:,i] = stackreg.generateShiftedImage(stack[:,:,i],xshifts[i],yshifts[i])
-#             pbar.update(1)
-        
-        
+    for i in range(z):
+        upstack = interpolation(stack[:,:,i],scale,method='nn',noise=noise,snr=snr)
+        zeros = None              
+        stack_reg[:,:,i],temp = shiftfunc(upstack, xshifts[i]*scale, yshifts[i]*scale,scale,zeros=zeros)
+        norm += temp
+            
     ave_im = np.sum(stack_reg,axis=2)
     
-    if scale>1:
-        return ave_im/norm
-    else:
-        return ave_im
+    return ave_im,norm
 
+def apply_idx_shift_expand(stack,xshifts,yshifts,xs2D,ys2D,scale,noise=False,snr=10):
+    x,y,z = np.shape(stack)
+    stack_reg = np.zeros((x*scale,y*scale,z))
+    norm = np.zeros((x*scale,y*scale))
+
+    for i in range(z):
+        upstack = interpolation(stack[:,:,i],scale,method='nn',noise=noise,snr=snr)
+        zeros = None              
+        stack_reg[:,:,i],temp = shiftfunc_idx_shift(upstack, xshifts[i]*scale, yshifts[i]*scale,xs2D,ys2D,scale,zeros=zeros)
+        norm += temp
+            
+    ave_im = np.sum(stack_reg,axis=2)
+    
+    return ave_im,norm
 
 def get_FFT(im):
     im_fft = sfft.fftshift(sfft.fft2(im))
