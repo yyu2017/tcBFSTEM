@@ -1,6 +1,6 @@
 from __future__ import division, print_function
 import numpy as np
-from scipy.signal import flattop
+from scipy.signal.windows import flattop
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import scipy.linalg

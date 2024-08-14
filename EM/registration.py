@@ -6,7 +6,7 @@ Created on Fri Feb 19 20:24:24 2016
 """
 from __future__ import division, print_function
 import numpy as np
-from scipy.signal import flattop
+from scipy.signal.windows import flattop
 from scipy.optimize import curve_fit
 import multiprocessing as mp
 import time

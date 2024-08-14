@@ -1,0 +1,11 @@
+name: tcBFSTEM
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - jupyterlab
+  - hyperspy
+  - pyfftw
+  - numpy
+  - matplotlib
+  - scipy
